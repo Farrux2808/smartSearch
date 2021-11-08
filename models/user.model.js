@@ -36,12 +36,19 @@ User.addAddress = function (address, result) {
 };
 
 User.smartSearch = function (data, result) {
-    let searchQuery = `SELECT u.fio, u.lavozim FROM user u RIGHT JOIN address a ON u.id = a.user_id WHERE`
-    let tmp = ""
+    let fioQuery = ""
+    let lavozimQuery = ""
+    let addressQuery = ""
     for(let item of data) {
-        tmp += `AND (u.fio LIKE '${item}%' OR u.lavozim LIKE '${item}%' OR a.address LIKE '${item}%')`
+        fioQuery += `u1.fio LIKE '%${item}%' OR `
+        lavozimQuery += `lavozim LIKE '%${item}%' OR `
+        addressQuery += `address LIKE '%${item}%' OR `
     }
-    searchQuery +=tmp.slice(3)
+    let searchQuery = `SELECT u1.fio, u1.lavozim FROM (SELECT * FROM user WHERE ${lavozimQuery.slice(0,-3)}) u1 
+    JOIN (SELECT * FROM address WHERE ${addressQuery.slice(0,-3)}) a1 
+    ON u1.id = a1.user_id
+    WHERE ${fioQuery.slice(0,-3)}`
+    console.log(searchQuery);
     dbConn.query(searchQuery, function (err, res) {
         if(err) {
             console.log("error: ", err);
