@@ -36,18 +36,7 @@ User.addAddress = function (address, result) {
 };
 
 User.smartSearch = function (data, result) {
-    let fioQuery = ""
-    let lavozimQuery = ""
-    let addressQuery = ""
-    for(let item of data) {
-        fioQuery += `u1.fio LIKE '%${item}%' OR `
-        lavozimQuery += `lavozim LIKE '%${item}%' OR `
-        addressQuery += `address LIKE '%${item}%' OR `
-    }
-    let searchQuery = `SELECT u1.fio, u1.lavozim FROM (SELECT * FROM user WHERE ${lavozimQuery.slice(0,-3)}) u1 
-    JOIN (SELECT * FROM address WHERE ${addressQuery.slice(0,-3)}) a1 
-    ON u1.id = a1.user_id
-    WHERE ${fioQuery.slice(0,-3)}`
+    let searchQuery = `SELECT u1.fio, u1.lavozim FROM ${createSubQuery(0, data)} AS u1`
     console.log(searchQuery);
     dbConn.query(searchQuery, function (err, res) {
         if(err) {
@@ -59,6 +48,19 @@ User.smartSearch = function (data, result) {
         }
     });
 };
+
+function createSubQuery(i, searchData) {
+    let subQuery;
+    let newQuery;
+    if(searchData.length == i + 1) {
+        subQuery = `(SELECT u.fio, u.lavozim, a.address FROM user u JOIN address a ON u.id = a.user_id WHERE u.fio LIKE '%${searchData[i]}%' OR u.lavozim LIKE '%${searchData[i]}%' OR a.address LIKE '%${searchData[i]}%')`;
+        return subQuery;
+    } else {
+        newQuery = createSubQuery(i + 1, searchData);
+        subQuery = `(SELECT * FROM ${newQuery} AS s${i} WHERE s${i}.fio LIKE '%${searchData[i]}%' OR s${i}.lavozim LIKE '%${searchData[i]}%' OR s${i}.address LIKE '%${searchData[i]}%')`;
+        return subQuery;
+    }
+}
 
 User.findById = function (id, result) {
     dbConn.query("Select * from user where id = ? ", id, function (err, res) {
